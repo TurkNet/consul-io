@@ -5,15 +5,19 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/spf13/cobra"
 )
 
-const version = "1.0.8"
+const version = "1.0.9"
 
 var consulAddr string
 var directory string
+var rateLimit int
+var retryLimit int
 
 var rootCmd = &cobra.Command{
 	Use:   "consul-io",
@@ -57,6 +61,8 @@ func init() {
 	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.PersistentFlags().StringVar(&consulAddr, "consul-addr", "http://localhost:8500", "Consul address")
+	rootCmd.PersistentFlags().IntVar(&rateLimit, "rate-limit", 500, "Rate limit in milliseconds between each upload")
+	rootCmd.PersistentFlags().IntVar(&retryLimit, "retry-limit", 5, "Number of retries for each upload in case of failure")
 }
 
 func main() {
@@ -83,49 +89,22 @@ func uploadToConsul(filePath, kvPath string) {
 
 	kv := client.KV()
 	p := &api.KVPair{Key: kvPath, Value: data}
-	_, err = kv.Put(p, nil)
+	for i := 0; i < retryLimit; i++ {
+		_, err = kv.Put(p, nil)
+		if err == nil {
+			break
+		}
+		fmt.Println("Error uploading to Consul, retrying:", err)
+		time.Sleep(time.Duration(rateLimit) * time.Millisecond)
+	}
+
 	if err != nil {
 		fmt.Println("Error uploading to Consul:", err)
 		return
 	}
 
 	fmt.Printf("Uploaded %s to %s\n", filePath, kvPath)
-}
-
-func downloadFromConsul(kvPath, filePath string) {
-	config := api.DefaultConfig()
-	config.Address = consulAddr
-	client, err := api.NewClient(config)
-	if err != nil {
-		fmt.Println("Error creating Consul client:", err)
-		return
-	}
-
-	kv := client.KV()
-	pair, _, err := kv.Get(kvPath, nil)
-	if err != nil {
-		fmt.Println("Error fetching from Consul:", err)
-		return
-	}
-
-	if pair == nil {
-		fmt.Printf("No data found at %s\n", kvPath)
-		return
-	}
-
-	err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
-	if err != nil {
-		fmt.Println("Error creating directory:", err)
-		return
-	}
-
-	err = ioutil.WriteFile(filePath, pair.Value, 0644)
-	if err != nil {
-		fmt.Println("Error writing file:", err)
-		return
-	}
-
-	fmt.Printf("Downloaded %s to %s\n", kvPath, filePath)
+	time.Sleep(time.Duration(rateLimit) * time.Millisecond)
 }
 
 func exportFromConsul(directory string) {
@@ -145,20 +124,30 @@ func exportFromConsul(directory string) {
 	}
 
 	for _, pair := range pairs {
-		filePath := filepath.Join(directory, pair.Key)
-		err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
-		if err != nil {
-			fmt.Println("Error creating directory:", err)
-			continue
+		if strings.HasSuffix(pair.Key, "/") {
+			// Anahtar bir dizin belirtir, bu nedenle dizin oluştur
+			dirPath := filepath.Join(directory, pair.Key)
+			err = os.MkdirAll(dirPath, os.ModePerm)
+			if err != nil {
+				fmt.Println("Error creating directory:", err)
+				continue
+			}
+			fmt.Printf("Downloaded %s to %s\n", pair.Key, dirPath)
+		} else {
+			// Anahtar bir dosya belirtir, dosyayı oluştur
+			filePath := filepath.Join(directory, pair.Key)
+			err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+			if err != nil {
+				fmt.Println("Error creating directory:", err)
+				continue
+			}
+			err = ioutil.WriteFile(filePath, pair.Value, 0644)
+			if err != nil {
+				fmt.Println("Error writing file:", err)
+				continue
+			}
+			fmt.Printf("Downloaded %s to %s\n", pair.Key, filePath)
 		}
-
-		err = ioutil.WriteFile(filePath, pair.Value, 0644)
-		if err != nil {
-			fmt.Println("Error writing file:", err)
-			continue
-		}
-
-		fmt.Printf("Downloaded %s to %s\n", pair.Key, filePath)
 	}
 }
 
@@ -168,7 +157,7 @@ func processDirectory(directory string, processFunc func(string, string)) {
 			return err
 		}
 
-		if !info.IsDir() && filepath.Ext(path) == ".production" {
+		if !info.IsDir() {
 			kvPath, err := filepath.Rel(directory, path)
 			if err != nil {
 				return err
