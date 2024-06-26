@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "1.0.7"
+const version = "1.0.8"
 
 var consulAddr string
 var directory string
