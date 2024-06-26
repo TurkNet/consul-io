@@ -10,13 +10,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "1.0.4"
+const version = "1.0.3"
 
 var consulAddr string
 
 var rootCmd = &cobra.Command{
 	Use:   "consul-uploader",
 	Short: "Upload config files to Consul KV store",
+	Long: `Consul Uploader is a CLI tool used to upload configuration files from a specified directory to the Consul KV store.
+Available commands are:
+  - version: Print the version number of Consul Uploader`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Please provide the directory path")
