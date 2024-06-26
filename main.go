@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const version = "1.0.4"
+
 var consulAddr string
 
 var rootCmd = &cobra.Command{
@@ -25,7 +27,16 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of Consul Uploader",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Consul Uploader v" + version)
+	},
+}
+
 func init() {
+	rootCmd.AddCommand(versionCmd)
 	rootCmd.PersistentFlags().StringVar(&consulAddr, "consul-addr", "http://localhost:8500", "Consul address")
 }
 
