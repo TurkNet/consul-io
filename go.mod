@@ -1,4 +1,4 @@
-module consul-uploader
+module github.com/turknet/consul-uploader
 
 go 1.20
 
