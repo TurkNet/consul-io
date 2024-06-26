@@ -32,17 +32,17 @@ jobs:
           #### Example for Linux
 
           ```sh
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/consul-uploader-linux-amd64
-          chmod +x consul-uploader-linux-amd64
-          sudo mv consul-uploader-linux-amd64 /usr/local/bin/consul-uploader
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/consul-io-linux-amd64
+          chmod +x consul-io-linux-amd64
+          sudo mv consul-io-linux-amd64 /usr/local/bin/consul-io
           ```
 
           #### Example for macOS
 
           ```sh
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/consul-uploader-darwin-amd64
-          chmod +x consul-uploader-darwin-amd64
-          sudo mv consul-uploader-darwin-amd64 /usr/local/bin/consul-uploader
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/consul-io-darwin-amd64
+          chmod +x consul-io-darwin-amd64
+          sudo mv consul-io-darwin-amd64 /usr/local/bin/consul-io
           ```
 
           #### Example for Windows
@@ -85,7 +85,7 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-      run: go build -o consul-uploader-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.extension }}
+      run: go build -o consul-io-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.extension }}
 
     - name: Upload Linux Binary
       if: matrix.os == 'ubuntu-latest'
@@ -94,8 +94,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./consul-uploader-linux-amd64
-        asset_name: consul-uploader-linux-amd64
+        asset_path: ./consul-io-linux-amd64
+        asset_name: consul-io-linux-amd64
         asset_content_type: application/octet-stream
 
     - name: Upload macOS Binary
@@ -105,8 +105,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./consul-uploader-darwin-amd64
-        asset_name: consul-uploader-darwin-amd64
+        asset_path: ./consul-io-darwin-amd64
+        asset_name: consul-io-darwin-amd64
         asset_content_type: application/octet-stream
 
     - name: Upload Windows Binary
@@ -116,6 +116,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./consul-uploader-windows-amd64.exe
-        asset_name: consul-uploader-windows-amd64.exe
+        asset_path: ./consul-io-windows-amd64.exe
+        asset_name: consul-io-windows-amd64.exe
         asset_content_type: application/octet-stream

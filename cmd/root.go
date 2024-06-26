@@ -13,7 +13,7 @@ import (
 var consulAddr string
 
 var rootCmd = &cobra.Command{
-	Use:   "consul-uploader",
+	Use:   "consul-io",
 	Short: "Upload config files to Consul KV store",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {

@@ -1,4 +1,4 @@
-module github.com/turknet/consul-uploader
+module github.com/turknet/consul-io
 
 go 1.20
 
