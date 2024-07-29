@@ -2,31 +2,27 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/spf13/cobra"
 )
 
-var consulAddr string
+const version = "1.0.9"
+
+var (
+	consulAddr  string
+	rateLimit   int
+	retryLimit  int
+	concurrency int
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "consul-io",
-	Short: "Upload config files to Consul KV store",
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			fmt.Println("Please provide the directory path")
-			os.Exit(1)
-		}
-		directory := args[0]
-		processDirectory(directory)
-	},
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringVar(&consulAddr, "consul-addr", "http://localhost:8500", "Consul address")
+	Short: "Import and export config files to/from Consul KV store",
+	Long: `Consul IO is a CLI tool used to import and export configuration files from a specified directory to the Consul KV store and vice versa.
+Available commands are:
+  - import: Upload config files to Consul KV store
+  - export: Download config files from Consul KV store`,
 }
 
 func Execute() {
@@ -36,50 +32,9 @@ func Execute() {
 	}
 }
 
-func uploadToConsul(filePath, kvPath string) {
-	config := api.DefaultConfig()
-	config.Address = consulAddr
-	client, err := api.NewClient(config)
-	if err != nil {
-		fmt.Println("Error creating Consul client:", err)
-		return
-	}
-
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		fmt.Println("Error reading file:", err)
-		return
-	}
-
-	kv := client.KV()
-	p := &api.KVPair{Key: kvPath, Value: data}
-	_, err = kv.Put(p, nil)
-	if err != nil {
-		fmt.Println("Error uploading to Consul:", err)
-		return
-	}
-
-	fmt.Printf("Uploaded %s to %s\n", filePath, kvPath)
-}
-
-func processDirectory(directory string) {
-	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() && filepath.Ext(path) == ".production" {
-			kvPath, err := filepath.Rel(directory, path)
-			if err != nil {
-				return err
-			}
-			uploadToConsul(path, kvPath)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		fmt.Println("Error walking the path:", err)
-	}
+func init() {
+	rootCmd.PersistentFlags().StringVar(&consulAddr, "consul-addr", "http://localhost:8500", "Consul address")
+	rootCmd.PersistentFlags().IntVar(&rateLimit, "rate-limit", 500, "Rate limit in milliseconds between each upload")
+	rootCmd.PersistentFlags().IntVar(&retryLimit, "retry-limit", 5, "Number of retries for each upload in case of failure")
+	rootCmd.PersistentFlags().IntVar(&concurrency, "concurrency", 5, "Number of concurrent uploads")
 }
