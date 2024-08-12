@@ -40,6 +40,32 @@ func GetKV(client *api.Client, key string, retryLimit, rateLimit int, ticker *ti
 	return "", nil
 }
 
+func CheckForSensitiveData(filePath string, content string) {
+	sensitiveKeys := []string{"Password", "Token", "Key"}
+	var problems []string
+
+	for _, key := range sensitiveKeys {
+		if strings.Contains(content, key) && !strings.Contains(content, `{{ with secret "kv/`) {
+			problems = append(problems, fmt.Sprintf("Warning: The configuration contains a sensitive key '%s' that is not stored in Vault in file %s.", key, filePath))
+		}
+	}
+
+	if len(problems) > 0 {
+		f, err := os.OpenFile("problems.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Println("Error opening problems.txt:", err)
+			return
+		}
+		defer f.Close()
+
+		for _, problem := range problems {
+			if _, err := f.WriteString(problem + "\n"); err != nil {
+				fmt.Println("Error writing to problems.txt:", err)
+			}
+		}
+	}
+}
+
 func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit int, sem chan struct{}, wg *sync.WaitGroup, ticker *time.Ticker) {
 	defer wg.Done()
 	client, err := getClient(consulAddr)
@@ -75,6 +101,8 @@ func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit i
 		<-sem
 		return
 	}
+
+	CheckForSensitiveData(filePath, string(data))
 
 	kv := client.KV()
 	p := &api.KVPair{Key: kvPath, Value: data}
@@ -115,7 +143,6 @@ func ExportFromConsul(directory, consulAddr string) {
 
 	for _, pair := range pairs {
 		if strings.HasSuffix(pair.Key, "/") {
-			// Anahtar bir dizin belirtir, bu nedenle dizin oluştur
 			dirPath := filepath.Join(directory, pair.Key)
 			err = os.MkdirAll(dirPath, os.ModePerm)
 			if err != nil {
@@ -124,7 +151,6 @@ func ExportFromConsul(directory, consulAddr string) {
 			}
 			fmt.Printf("Downloaded %s to %s\n", pair.Key, dirPath)
 		} else {
-			// Anahtar bir dosya belirtir, dosyayı oluştur
 			filePath := filepath.Join(directory, pair.Key)
 			err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
 			if err != nil {
@@ -136,6 +162,9 @@ func ExportFromConsul(directory, consulAddr string) {
 				fmt.Println("Error writing file:", err)
 				continue
 			}
+
+			CheckForSensitiveData(filePath, string(pair.Value))
+
 			fmt.Printf("Downloaded %s to %s\n", pair.Key, filePath)
 		}
 	}

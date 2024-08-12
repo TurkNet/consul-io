@@ -22,7 +22,6 @@ func CompareFiles(filePath string, consulValue string) (bool, error) {
 		return false, fmt.Errorf("failed to read file: %v", err)
 	}
 
-	// Hesaplanan hash değerlerini karşılaştırma
 	fileHash := md5.Sum(content)
 	consulHash := md5.Sum([]byte(consulValue))
 
