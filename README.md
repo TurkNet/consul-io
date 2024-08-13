@@ -33,14 +33,14 @@ consul-io help
 ### Command Line Arguments
 
 - `--consul-addr` : Specifies the address of the Consul server. The default value is `http://localhost:8500`.
-
+- `--ignore` : Specifies one or more paths to ignore during the import process. This option is useful if you want to skip certain directories or files.
 - `[directory]` : The directory containing the configuration files you want to upload or the directory to which you want to export files.
 
 ### Example Usage
 
 #### Import
 ```sh
-consul-io --consul-addr=http://localhost:8500 import test
+consul-io --consul-addr=http://localhost:8500 import test --ignore="test/team1/apps/project2"
 ```
 This command finds the files with the `.production` extension in the `test` directory and uploads them to the Consul KV store.
 
@@ -51,6 +51,16 @@ This command finds the files with the `.production` extension in the `test` dire
 consul-io --consul-addr=http://localhost:8500 export test
 ```
 This command downloads the configuration files from the Consul KV store and saves them in the `test` directory, maintaining the same structure.
+
+### Colorful Console Output
+
+Consul IO provides colorful console output to improve readability:
+
+- `Errors` are displayed in `red`.
+- `Warnings` are displayed in `yellow`.
+- `Success messages` are displayed in `green`.
+- `Informational messages` are displayed in `cyan`.
+
 
 ## Example Directory Structure
 
@@ -88,3 +98,6 @@ consul-io/
 - [github.com/hashicorp/consul/api](https://github.com/hashicorp/consul/api) : Library used to interact with the Consul API.
 
 - [github.com/spf13/cobra](https://github.com/spf13/cobra) : Library used to create the command line interface.
+
+- [github.com/fatih/color](https://github.com/fatih/color)  : Library used for adding color to the terminal output.
+
