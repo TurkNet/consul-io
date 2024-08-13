@@ -12,7 +12,7 @@ var exportCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		directory := args[0]
-		consul.ExportFromConsul(directory, consulAddr)
+		consul.ExportFromConsul(directory, consulAddr, token)
 		color.Green("Export process completed successfully.")
 	},
 }

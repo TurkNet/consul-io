@@ -25,7 +25,9 @@ var importCmd = &cobra.Command{
 		ticker := time.NewTicker(time.Duration(rateLimit) * time.Millisecond)
 		defer ticker.Stop()
 
-		file.ProcessDirectory(directory, consulAddr, rateLimit, retryLimit, ignorePaths, sem, &wg, ticker, consul.UploadToConsul)
+		file.ProcessDirectory(directory, consulAddr, rateLimit, retryLimit, ignorePaths, sem, &wg, ticker, func(filePath, kvPath, consulAddr string, retryLimit, rateLimit int, sem chan struct{}, wg *sync.WaitGroup, ticker *time.Ticker) {
+			consul.UploadToConsul(filePath, kvPath, consulAddr, token, retryLimit, rateLimit, sem, wg, ticker)
+		})
 		wg.Wait()
 		close(sem)
 		color.Green("Import process completed successfully.")

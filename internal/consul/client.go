@@ -14,13 +14,24 @@ import (
 	"github.com/turknet/consul-io/internal/file"
 )
 
-func getClient(consulAddr string) (*api.Client, error) {
+func getClient(consulAddr, token string) (*api.Client, error) {
 	config := api.DefaultConfig()
 	config.Address = consulAddr
+
+	if token != "" {
+		config.Token = token
+	}
+
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating Consul client: %v", err)
 	}
+
+	_, err = client.Agent().Self()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to authenticate with Consul using the provided token: %v", err)
+	}
+
 	return client, nil
 }
 
@@ -68,9 +79,9 @@ func CheckForSensitiveData(filePath string, content string) {
 	}
 }
 
-func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit int, sem chan struct{}, wg *sync.WaitGroup, ticker *time.Ticker) {
+func UploadToConsul(filePath, kvPath, consulAddr, token string, retryLimit, rateLimit int, sem chan struct{}, wg *sync.WaitGroup, ticker *time.Ticker) {
 	defer wg.Done()
-	client, err := getClient(consulAddr)
+	client, err := getClient(consulAddr, token)
 	if err != nil {
 		color.Red("Error: %v", err)
 		<-sem
@@ -129,8 +140,8 @@ func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit i
 	<-sem
 }
 
-func ExportFromConsul(directory, consulAddr string) {
-	client, err := getClient(consulAddr)
+func ExportFromConsul(directory, consulAddr, token string) {
+	client, err := getClient(consulAddr, token)
 	if err != nil {
 		color.Red("Error: %v", err)
 		return

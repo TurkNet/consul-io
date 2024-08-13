@@ -7,13 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "1.2.2"
+const version = "1.2.3"
 
 var (
 	consulAddr  string
 	rateLimit   int
 	retryLimit  int
 	concurrency int
+	token       string
 )
 
 var rootCmd = &cobra.Command{
@@ -37,4 +38,5 @@ func init() {
 	rootCmd.PersistentFlags().IntVar(&rateLimit, "rate-limit", 500, "Rate limit in milliseconds between each upload")
 	rootCmd.PersistentFlags().IntVar(&retryLimit, "retry-limit", 5, "Number of retries for each upload in case of failure")
 	rootCmd.PersistentFlags().IntVar(&concurrency, "concurrency", 5, "Number of concurrent uploads")
+	rootCmd.PersistentFlags().StringVar(&token, "token", "", "ACL token for Consul authentication")
 }

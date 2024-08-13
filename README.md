@@ -34,13 +34,14 @@ consul-io help
 
 - `--consul-addr` : Specifies the address of the Consul server. The default value is `http://localhost:8500`.
 - `--ignore` : Specifies one or more paths to ignore during the import process. This option is useful if you want to skip certain directories or files.
+- `--token` : Optional ACL token for Consul authentication. If provided, all operations will be authenticated using this token.
 - `[directory]` : The directory containing the configuration files you want to upload or the directory to which you want to export files.
 
 ### Example Usage
 
 #### Import
 ```sh
-consul-io --consul-addr=http://localhost:8500 import test --ignore="test/team1/apps/project2"
+consul-io --consul-addr=http://localhost:8500 --token=my-secret-token import test --ignore="test/team1/apps/project2"
 ```
 This command finds the files with the `.production` extension in the `test` directory and uploads them to the Consul KV store.
 
@@ -48,7 +49,7 @@ This command finds the files with the `.production` extension in the `test` dire
 
 #### Export
 ```sh
-consul-io --consul-addr=http://localhost:8500 export test
+consul-io --consul-addr=http://localhost:8500 --token=my-secret-token export test
 ```
 This command downloads the configuration files from the Consul KV store and saves them in the `test` directory, maintaining the same structure.
 
