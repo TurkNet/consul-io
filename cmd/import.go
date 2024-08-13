@@ -9,6 +9,10 @@ import (
 	"github.com/turknet/consul-io/internal/file"
 )
 
+var (
+	ignorePaths []string
+)
+
 var importCmd = &cobra.Command{
 	Use:   "import [directory]",
 	Short: "Import config files to Consul KV store",
@@ -20,12 +24,13 @@ var importCmd = &cobra.Command{
 		ticker := time.NewTicker(time.Duration(rateLimit) * time.Millisecond)
 		defer ticker.Stop()
 
-		file.ProcessDirectory(directory, consulAddr, rateLimit, retryLimit, sem, &wg, ticker, consul.UploadToConsul)
+		file.ProcessDirectory(directory, consulAddr, rateLimit, retryLimit, ignorePaths, sem, &wg, ticker, consul.UploadToConsul)
 		wg.Wait()
 		close(sem)
 	},
 }
 
 func init() {
+	importCmd.Flags().StringSliceVar(&ignorePaths, "ignore", []string{}, "List of paths to ignore during import")
 	rootCmd.AddCommand(importCmd)
 }
