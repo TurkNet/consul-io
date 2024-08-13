@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/turknet/consul-io/internal/consul"
 )
@@ -12,6 +13,7 @@ var exportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		directory := args[0]
 		consul.ExportFromConsul(directory, consulAddr)
+		color.Green("Export process completed successfully.")
 	},
 }
 

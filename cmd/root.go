@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
-const version = "1.2.0"
+const version = "1.2.2"
 
 var (
 	consulAddr  string
@@ -27,7 +27,7 @@ Available commands are:
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		color.Red("Error: %v", err)
 		os.Exit(1)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/hashicorp/consul/api"
 	"github.com/turknet/consul-io/internal/file"
 )
@@ -53,15 +54,16 @@ func CheckForSensitiveData(filePath string, content string) {
 	if len(problems) > 0 {
 		f, err := os.OpenFile("problems.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			fmt.Println("Error opening problems.txt:", err)
+			color.Red("Error opening problems.txt: %v", err)
 			return
 		}
 		defer f.Close()
 
 		for _, problem := range problems {
 			if _, err := f.WriteString(problem + "\n"); err != nil {
-				fmt.Println("Error writing to problems.txt:", err)
+				color.Red("Error writing to problems.txt: %v", err)
 			}
+			color.Yellow(problem)
 		}
 	}
 }
@@ -70,34 +72,34 @@ func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit i
 	defer wg.Done()
 	client, err := getClient(consulAddr)
 	if err != nil {
-		fmt.Println(err)
+		color.Red("Error: %v", err)
 		<-sem
 		return
 	}
 
 	consulValue, err := GetKV(client, kvPath, retryLimit, rateLimit, ticker)
 	if err != nil {
-		fmt.Println("Error getting KV from Consul:", err)
+		color.Red("Error getting KV from Consul: %v", err)
 		<-sem
 		return
 	}
 
 	isSame, err := file.CompareFiles(filePath, consulValue)
 	if err != nil {
-		fmt.Println("Error comparing files:", err)
+		color.Red("Error comparing files: %v", err)
 		<-sem
 		return
 	}
 
 	if isSame {
-		fmt.Printf("No changes detected for file: %s\n", filePath)
+		color.Green("No changes detected for file: %s", filePath)
 		<-sem
 		return
 	}
 
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("Error reading file:", err)
+		color.Red("Error reading file: %v", err)
 		<-sem
 		return
 	}
@@ -112,17 +114,17 @@ func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit i
 		if err == nil {
 			break
 		}
-		fmt.Println("Error uploading to Consul, retrying:", err)
+		color.Yellow("Error uploading to Consul, retrying: %v", err)
 		time.Sleep(time.Duration(rateLimit) * time.Millisecond)
 	}
 
 	if err != nil {
-		fmt.Println("Error uploading to Consul:", err)
+		color.Red("Error uploading to Consul: %v", err)
 		<-sem
 		return
 	}
 
-	fmt.Printf("Uploaded %s to %s\n", filePath, kvPath)
+	color.Green("Uploaded %s to %s", filePath, kvPath)
 	time.Sleep(time.Duration(rateLimit) * time.Millisecond)
 	<-sem
 }
@@ -130,14 +132,14 @@ func UploadToConsul(filePath, kvPath, consulAddr string, retryLimit, rateLimit i
 func ExportFromConsul(directory, consulAddr string) {
 	client, err := getClient(consulAddr)
 	if err != nil {
-		fmt.Println(err)
+		color.Red("Error: %v", err)
 		return
 	}
 
 	kv := client.KV()
 	pairs, _, err := kv.List("/", nil)
 	if err != nil {
-		fmt.Println("Error fetching keys from Consul:", err)
+		color.Red("Error fetching keys from Consul: %v", err)
 		return
 	}
 
@@ -146,26 +148,26 @@ func ExportFromConsul(directory, consulAddr string) {
 			dirPath := filepath.Join(directory, pair.Key)
 			err = os.MkdirAll(dirPath, os.ModePerm)
 			if err != nil {
-				fmt.Println("Error creating directory:", err)
+				color.Red("Error creating directory: %v", err)
 				continue
 			}
-			fmt.Printf("Downloaded %s to %s\n", pair.Key, dirPath)
+			color.Green("Downloaded %s to %s", pair.Key, dirPath)
 		} else {
 			filePath := filepath.Join(directory, pair.Key)
 			err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
 			if err != nil {
-				fmt.Println("Error creating directory:", err)
+				color.Red("Error creating directory: %v", err)
 				continue
 			}
 			err = ioutil.WriteFile(filePath, pair.Value, 0644)
 			if err != nil {
-				fmt.Println("Error writing file:", err)
+				color.Red("Error writing file: %v", err)
 				continue
 			}
 
 			CheckForSensitiveData(filePath, string(pair.Value))
 
-			fmt.Printf("Downloaded %s to %s\n", pair.Key, filePath)
+			color.Green("Downloaded %s to %s", pair.Key, filePath)
 		}
 	}
 }

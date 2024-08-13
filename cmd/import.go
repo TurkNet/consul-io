@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/turknet/consul-io/internal/consul"
 	"github.com/turknet/consul-io/internal/file"
@@ -27,6 +28,7 @@ var importCmd = &cobra.Command{
 		file.ProcessDirectory(directory, consulAddr, rateLimit, retryLimit, ignorePaths, sem, &wg, ticker, consul.UploadToConsul)
 		wg.Wait()
 		close(sem)
+		color.Green("Import process completed successfully.")
 	},
 }
 
