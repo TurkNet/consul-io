@@ -16,6 +16,7 @@ go install github.com/turknet/consul-io@latest
 consul-io version
 ```
 
+
 ## Usage
 
 You can run the CLI tool using the following command:
