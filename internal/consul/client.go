@@ -53,7 +53,7 @@ func GetKV(client *api.Client, key string, retryLimit, rateLimit int, ticker *ti
 }
 
 func CheckForSensitiveData(filePath string, content string) {
-	sensitiveKeys := []string{"Password", "Token", "Key"}
+	sensitiveKeys := []string{"Password", "Token"}
 	var problems []string
 
 	for _, key := range sensitiveKeys {
