@@ -2,8 +2,6 @@ module github.com/turknet/consul-io
 
 go 1.21
 
-toolchain go1.23.5
-
 require (
 	github.com/fatih/color v1.17.0
 	github.com/hashicorp/consul/api v1.29.1
