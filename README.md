@@ -27,6 +27,7 @@ consul-io help
 
 - `import [directory]` : Upload config files to Consul KV store
 - `export [directory]` : Download config files from Consul KV store
+- `vault-search [search-term]` : Search for a term in Vault KV store
 - `version` : Print the version number of Consul IO
 - `help` : Display help for consul-io
 
@@ -35,6 +36,11 @@ consul-io help
 - `--consul-addr` : Specifies the address of the Consul server. The default value is `http://localhost:8500`.
 - `--ignore` : Specifies one or more paths to ignore during the import process. This option is useful if you want to skip certain directories or files.
 - `--token` : Optional ACL token for Consul authentication. If provided, all operations will be authenticated using this token.
+- `--vault-addr` : Vault server address (e.g. http://vault:8200)
+- `--auth-type` : Authentication type for Vault (ldap)
+- `--username` : Username for Vault authentication
+- `--password` : Password for Vault authentication
+- `--path` : Optional specific path to search in Vault
 - `[directory]` : The directory containing the configuration files you want to upload or the directory to which you want to export files.
 
 ### Example Usage
@@ -45,7 +51,27 @@ consul-io --consul-addr=http://localhost:8500 --token=my-secret-token import tes
 ```
 This command finds the files with the `.production` extension in the `test` directory and uploads them to the Consul KV store.
 
+#### Vault Search
+```sh
+# Search in all KV paths
+consul-io vault-search "search-term" \
+  --vault-addr="http://vault:8200" \
+  --auth-type="ldap" \
+  --username="your-username" \
+  --password="your-password"
 
+# Search in a specific path
+consul-io vault-search "search-term" \
+  --vault-addr="http://vault:8200" \
+  --auth-type="ldap" \
+  --username="your-username" \
+  --password="your-password" \
+  --path="secret/specific/path"
+```
+This command searches for the specified term in Vault KV store and displays matching values with colored output:
+- Path is shown in green
+- Keys are shown in yellow
+- Values are shown in red
 
 #### Export
 ```sh
