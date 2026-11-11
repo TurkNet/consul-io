@@ -1,0 +1,84 @@
+# Bitbucket Pipelines şablonu.
+#
+# Bu dosya, Consul KV içeriğini (ör. dev/ alt ağacı) barındıran KONFİG reposuna
+# kopyalanır. consul-io CLI'ı kullanarak, main'e merge edilen her PR'da yalnızca
+# değişen dosyaları Consul'a uygular.
+#
+# Gerekli repository/deployment variables:
+#   CONSUL_ADDR   -> https://consul-addr
+#   MARKER_KEY    -> _consul-io/main/last-applied
+#   IMPORT_DIR    -> dev
+#   CONSUL_TOKEN  -> (opsiyonel) Consul ACL token
+#   BINARY_URL    -> (opsiyonel) indirilecek consul-io binary URL'si
+#                     ör. https://github.com/TurkNet/consul-io/releases/download/v1.3.0/consul-io-linux-amd64
+
+image: golang:1.22
+
+definitions:
+  steps:
+    # Ortak kurulum: consul-io binary'sini hazırlar ve artifact olarak yayınlar.
+    # (Bitbucket adımları ayrı container'larda çalışır; bu yüzden artifact şart.)
+    - step: &prepare
+        name: "consul-io hazırla"
+        script:
+          # Seçenek A: Release binary'sini indir (hızlı, Go gerekmez).
+          - |
+            if [ -n "$BINARY_URL" ]; then
+              mkdir -p ./bin
+              curl -fsSL "$BINARY_URL" -o ./bin/consul-io
+              chmod +x ./bin/consul-io
+            fi
+          # Seçenek B: Kaynaktan derle (BINARY_URL verilmediyse).
+          - |
+            if [ ! -x ./bin/consul-io ]; then
+              GOBIN="$PWD/bin" go install github.com/turknet/consul-io@latest
+            fi
+          - ./bin/consul-io version
+        artifacts:
+          - bin/**
+
+    # 1) Önizleme: hiçbir şey uygulanmaz, yalnızca Put/Delete planı yazdırılır.
+    - step: &dry-run
+        name: "consul-io dry-run (önizleme)"
+        script:
+          - ./bin/consul-io version
+          - |
+            ./bin/consul-io --consul-addr="$CONSUL_ADDR" --token="$CONSUL_TOKEN" \
+              import "$IMPORT_DIR" \
+              --git-diff \
+              --marker-key "$MARKER_KEY" \
+              --prune \
+              --dry-run
+
+    # 2) Uygula: yalnızca manuel onaydan sonra çalışır.
+    - step: &apply
+        name: "consul-io import (uygula)"
+        trigger: manual
+        script:
+          - ./bin/consul-io version
+          - |
+            ./bin/consul-io --consul-addr="$CONSUL_ADDR" --token="$CONSUL_TOKEN" \
+              import "$IMPORT_DIR" \
+              --git-diff \
+              --marker-key "$MARKER_KEY" \
+              --prune
+          # Not: bir PR 1'den fazla dosya silerse run durur (--max-delete=1).
+          # Bilinçli olarak artırmak için: --max-delete <N>
+
+clone:
+  # Marker commit'inin (son uygulanan SHA) klonda bulunması için tam geçmiş.
+  # Shallow klonda marker yoksa araç güvenli şekilde tam taramaya düşer
+  # (silme yapmadan), ancak delta çalışmaz.
+  depth: full
+
+pipelines:
+  branches:
+    main:
+      - step: *prepare
+      - step: *dry-run
+      - step: *apply
+  pull-requests:
+    # PR'larda yalnızca önizleme çalışır; Consul'a hiçbir şey uygulanmaz.
+    "**":
+      - step: *prepare
+      - step: *dry-run
