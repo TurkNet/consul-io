@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "1.2.7"
+const version = "1.3.0"
 
 var (
 	consulAddr  string
